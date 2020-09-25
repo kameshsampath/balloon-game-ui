@@ -1,0 +1,25 @@
+{
+"type":"reset-game",
+"game":{
+  "id":"0618f247-45cc-4a27-af7c-ee6e93a3e1fa",
+  "state":"lobby",
+  "date":"2020-09-22T06:16:33.062Z",
+  "configuration":{
+    "background": "default",
+    "ignore": 100,
+    "size": 0.6,
+    "opacity": 85,
+    "speed": 70,
+    "goldenSnitch1": false,
+    "goldenSnitch2": false,
+    "points":{
+       "red": 1,
+       "yellow": 1,
+       "green": 1,
+       "blue": 1,
+       "goldenSnitch1": 50,
+       "goldenSnitch2": 50
+    }
+  }
+ }
+}

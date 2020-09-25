@@ -34,7 +34,9 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
+    "http-proxy-middleware": "^1.0.5",
     "lodash": "^4.17.20",
-    "phaser": "^3.24.1"
+    "phaser": "^3.24.1",
+    "ws": "^7.3.1"
   }
 }

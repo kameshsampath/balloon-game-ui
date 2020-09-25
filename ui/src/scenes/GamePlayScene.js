@@ -4,8 +4,12 @@ class GamePlayScene extends Scene {
 
   constructor() {
     super("play")
+    //better logic to calculate this based on consicutive hits
+    this.goldenSnitchChance = Math.random();
     this.nextFire = 0;
     this.consecutive = 0;
+    this.frameNames = ['balloon_red', 'balloon_green', 'balloon_blue', 'balloon_yellow', 'balloon_golden1', 'balloon_golden2'];
+    this.score = 0;
   }
 
   preload () {
@@ -71,7 +75,7 @@ class GamePlayScene extends Scene {
   }
 
   init (data) {
-    //console.log("Game Config", data);
+    //console.log("Game Config=%s", JSON.stringify(data));
     this.configuration = data;
   }
 
@@ -102,11 +106,9 @@ class GamePlayScene extends Scene {
     //Create balloons group
     this.balloons = this.physics.add.group();
 
-    const frameNames = ['balloon_red', 'balloon_green', 'balloon_blue', 'balloon_yellow', 'balloon_golden1', 'balloon_golden2']
-
     for (var i = 0; i < this.configuration.numberOfBalloons; i++) {
       this.balloons.create(0, 0, 'balloons',
-        frameNames[i - 1], false, false);
+        this.frameNames[i - 1], false, false);
     }
 
     //ConfigureBalloon
@@ -119,11 +121,13 @@ class GamePlayScene extends Scene {
       this.burstBaloon(body.gameObject,
         body.center.x,
         body.center.y);
-      console.log("Blocked up:%s Blocked Down:%s", blockedUp, blockedDown);
     }, this);
 
     this.createExplosions();
     this.throwNewBalloon();
+    this.input.on("gameobjectup",
+      this.pointsHandler,
+      this);
   }
 
   update (time, delta) {
@@ -200,13 +204,7 @@ class GamePlayScene extends Scene {
   setupBalloon = (balloon) => {
     balloon.body.enable = true;
     //Register event for touch 
-    balloon.setInteractive()
-      .on('pointerdown', (pointer, x, y, event) => {
-        this.burstBaloon(balloon,
-          pointer.x,
-          pointer.y);
-        this.consecutive++;
-      })
+    balloon.setInteractive();
     //When colloding with titlebar, burst the balloon
     this.physics.add
       .overlap(this.titleBar, this.balloons, (t, b) => {
@@ -217,28 +215,38 @@ class GamePlayScene extends Scene {
       }, null, this);
   }
 
+  setConfiguration = (data) => {
+    this.configuration = data;
+  }
+
   throwNewBalloon = () => {
 
     let balloon;
 
     //GoldenSnitch 1
-    if (this.configuration.goldenSnitch &&
-      Math.random() < this.goldenSnitchChance
+    if (this.configuration.goldenSnitch1
+      && Math.random() < this.goldenSnitchChance
       && !this.goldenSnitch1Created) {
+      console.log("goldenSnitch1");
       balloon = this.balloons
         .create(0, 0,
           'balloons',
-          4, false, false);
+          this.frameNames[4], false, false);
       this.goldenSnitch1Created = true;
       this.setupBalloon(balloon);
-    } //GoldenSnitch 2
-    else if (this.configuration.goldenSnitch2 &&
-      Math.random() < this.goldenSnitchChance
+    } else {
+      balloon = this.balloons.getFirstDead();
+    }
+
+    //GoldenSnitch 2
+    if (this.configuration.goldenSnitch2
+      && Math.random() < this.goldenSnitchChance
       && !this.goldenSnitch2Created) {
+      console.log("goldenSnitch2");
       balloon = this.balloons
         .create(0, 0,
           'balloons',
-          5, false, false);
+          this.frameNames[5], false, false);
       this.goldenSnitch2Created = true;
       this.setupBalloon(balloon);
     } else {
@@ -272,43 +280,75 @@ class GamePlayScene extends Scene {
     this.physics.moveTo(balloon, moveX, moveY, speed);
   }
 
-  updateScore = () => {
-    this.scoreText(`Score:${this.consecutive}`)
+  pointsHandler = (pointer, balloon) => {
+    this.burstBaloon(balloon,
+      pointer.x,
+      pointer.y, true);
+    this.events.emit("score", this.scorer(balloon));
   }
 
-  burstBaloon = (balloon, explosionX, explosionY) => {
+  burstBaloon = (balloon, explosionX, explosionY, burst) => {
     //console.log("Balloon %s", balloon.frame.name);
-    let frameName = balloon.frame.name;
-    var explosion = this.explosions
-      .get()
-      .setActive(true);
-    explosion.x = explosionX;
-    explosion.y = explosionY;
-    switch (frameName) {
-      case 'balloon_red': {
-        explosion.play('explode_red');
-        break;
+    if (burst) {
+      this.consecutive++;
+      let frameName = balloon.frame.name;
+      var explosion = this.explosions
+        .get()
+        .setActive(true);
+      explosion.x = explosionX;
+      explosion.y = explosionY;
+      switch (frameName) {
+        case 'balloon_red': {
+          explosion.play('explode_red');
+          break;
+        }
+        case 'balloon_green': {
+          explosion.play('explode_green');
+          break;
+        }
+        case 'balloon_blue': {
+          explosion.play('explode_blue');
+          break;
+        }
+        case 'balloon_yellow': {
+          explosion.play('explode_yellow');
+          break;
+        }
+        default: {
+          explosion.play('explode_default');
+          break;
+        }
       }
-      case 'balloon_green': {
-        explosion.play('explode_green');
-        break;
-      }
-      case 'balloon_blue': {
-        explosion.play('explode_blue');
-        break;
-      }
-      case 'balloon_yellow': {
-        explosion.play('explode_yellow');
-        break;
-      }
-      default: {
-        explosion.play('explode_default');
-        break;
-      }
+    } else {
+      this.consecutive--;
     }
-
     this.balloons.killAndHide(balloon);
   }
+
+  scorer = (balloon) => {
+    let frameName = balloon.frame.name;
+    if (frameName) {
+      const colorMatchRegx = /(.*)_(.*)/
+      let color = frameName.match(colorMatchRegx);
+      let colorPoints;
+      //console.log("Color Points %s", color[2]);
+      if (color[2] === 'golden1') {
+        colorPoints = 'goldenSnitch1';
+      } else if (color[2] === 'golden2') {
+        colorPoints = 'goldenSnitch2';
+      } else {
+        colorPoints = color[2]
+      }
+      const point = this.configuration.points[colorPoints];
+      this.score = this.score + point;
+      // console.log("Color:%s points is %s, score updated=%d",
+      //   colorPoints,
+      //   point,
+      //   this.score);
+      this.scoreText.setText(`Score:${this.score}`);
+    }
+  }
+
 }
 
 export default GamePlayScene;
