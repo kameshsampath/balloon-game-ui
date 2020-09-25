@@ -36,10 +36,11 @@ pom.xml.versionsBackup
 release.properties
 
 # UI ignores
-/ui/node_modules
-/ui/temp
-/ui/*.log
-/ui/temp
-/ui/build
-/ui/watch-dist
-/ui/dist
+node_modules
+temp
+*.log
+temp
+build
+watch-dist
+dist
+ui
