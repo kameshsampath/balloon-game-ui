@@ -39,8 +39,8 @@ release.properties
 node_modules
 temp
 *.log
-temp
 build
 watch-dist
 dist
 ui
+yarn.lock

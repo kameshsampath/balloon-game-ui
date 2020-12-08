@@ -1,9 +1,10 @@
-import Phaser, { Scene } from 'phaser';
+import Phaser, {Scene} from 'phaser';
 
 class GamePlayScene extends Scene {
 
-  constructor() {
+  constructor(socket) {
     super("play")
+    this.socket = socket
     //better logic to calculate this based on consicutive hits
     this.goldenSnitchChance = Math.random();
     this.nextFire = 0;
@@ -12,7 +13,7 @@ class GamePlayScene extends Scene {
     this.score = 0;
   }
 
-  preload () {
+  preload() {
 
     this.load.image('titlebar', 'assets/platform.png');
     this.load.image('star', 'assets/star.png');
@@ -74,26 +75,27 @@ class GamePlayScene extends Scene {
     });
   }
 
-  init (data) {
-    //console.log("Game Config=%s", JSON.stringify(data));
-    this.configuration = data;
+  init(data) {
+    console.log("Game Config=%s", JSON.stringify(data));
+    this.configuration = data
   }
 
-  create () {
+  create() {
 
     //Title 
     this.titleBar = this.physics.add.staticGroup()
 
-    //TODO fix this well
+    //TODO Align and Style these objects
     this.titleBar
       .create(0, 0, 'titlebar', true, true)
       .setScale(20, 3)
       .refreshBody();
 
-    this.add.text(0, 0, "Balloon Mania", {
+    this.add.text(40, 0, this.configuration.player.username, {
       fontFamily: "'RedHat Display'",
       fontSize: "32px",
-      fill: "#ffffff"
+      fill: "#ffffff",
+      align: "center",
     });
 
     this.scoreText = this.add.text(16, 75, "Score:0", {
@@ -117,7 +119,7 @@ class GamePlayScene extends Scene {
 
     //Register outof bounds event
     this.physics.world.on('worldbounds', (body, blockedUp,
-      blockedDown, blockedLeft, blockedRight) => {
+                                          blockedDown, blockedLeft, blockedRight) => {
       this.burstBaloon(body.gameObject,
         body.center.x,
         body.center.y);
@@ -130,7 +132,7 @@ class GamePlayScene extends Scene {
       this);
   }
 
-  update (time, delta) {
+  update(time, delta) {
     if (time > this.nextFire) {
       this.nextFire = this.configuration.fireRate + time + delta;
       //console.log("Time=%f,Delta=%f,nextFire=%f", time, delta, this.nextFire)
@@ -216,7 +218,8 @@ class GamePlayScene extends Scene {
   }
 
   setConfiguration = (data) => {
-    this.configuration = data;
+    console.log("Config %s", data)
+    this.configuration = data.configuration
   }
 
   throwNewBalloon = () => {
@@ -345,7 +348,15 @@ class GamePlayScene extends Scene {
       //   colorPoints,
       //   point,
       //   this.score);
+      const scoreMessage = {
+        type: "score",
+        score: this.score,
+        player: this.configuration.player,
+        game: this.configuration.game
+      }
       this.scoreText.setText(`Score:${this.score}`);
+      console.log("Sending Score Message %s", JSON.stringify(scoreMessage))
+      this.socket.send(JSON.stringify(scoreMessage))
     }
   }
 
